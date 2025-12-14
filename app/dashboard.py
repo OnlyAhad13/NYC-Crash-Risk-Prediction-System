@@ -788,8 +788,11 @@ def create_risk_map(pred_df, show_intervals=False, location_map=None):
             'lat': lat,
             'lng': lng,
             'risk': float(risk),
+            'risk_str': f"{float(risk):.4f}",  # Pre-formatted for tooltip
             'lower': float(row.get('lower_bound', risk)),
             'upper': float(row.get('upper_bound', risk)),
+            'lower_str': f"{float(row.get('lower_bound', risk)):.4f}",
+            'upper_str': f"{float(row.get('upper_bound', risk)):.4f}",
             'elevation': elevation,
             'r': r,
             'g': g,
@@ -825,7 +828,7 @@ def create_risk_map(pred_df, show_intervals=False, location_map=None):
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             margin-bottom: 6px;
-        ">Risk: {risk:.4f}</div>
+        ">Risk: {risk_str}</div>
     """
     
     if show_intervals and 'lower_bound' in pred_df.columns:
@@ -837,7 +840,7 @@ def create_risk_map(pred_df, show_intervals=False, location_map=None):
             border-top: 1px solid rgba(0, 212, 255, 0.2);
             margin-top: 6px;
         ">
-            <span style="color: #00F5A0;">90% CI:</span> [{lower:.4f}, {upper:.4f}]
+            <span style="color: #00F5A0;">90% CI:</span> [{lower_str}, {upper_str}]
         </div>
         """
     
@@ -1872,6 +1875,7 @@ def create_scenario_map_data(results_df, location_map):
             'h3_index': row['h3_index'],
             'location': location_name,
             'risk': risk,
+            'risk_str': f"{risk:.4f}",  # Pre-formatted for tooltip
             'elevation': elevation,
             'r': r, 'g': g, 'b': b, 'a': 200
         })
@@ -1927,7 +1931,7 @@ def build_hex_map(map_df, title):
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         ">
-            Risk: {{risk:.4f}}
+            Risk: {{risk_str}}
         </div>
     </div>
     """
