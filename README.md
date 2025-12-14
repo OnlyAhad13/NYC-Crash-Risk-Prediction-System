@@ -132,8 +132,8 @@ NYC-Crash-Risk-Prediction/
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/nyc-crash-risk.git
-cd nyc-crash-risk
+git clone https://github.com/yourusername/nyc-crash-risk-prediction-system.git
+cd nyc-crash-risk-prediction-system
 
 # Create virtual environment
 python -m venv venv
