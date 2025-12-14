@@ -1340,15 +1340,13 @@ def page_model_performance():
     mae = mean_absolute_error(y_true, y_pred)
     r2 = r2_score(y_true, y_pred)
     
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3 = st.columns(3)
     
     with col1:
         st.metric("RMSE", f"{rmse:.4f}")
     with col2:
         st.metric("MAE", f"{mae:.4f}")
     with col3:
-        st.metric("R² Score", f"{r2:.4f}")
-    with col4:
         baseline_mae = mean_absolute_error(y_true, np.full_like(y_true, y_true.mean()))
         improvement = (baseline_mae - mae) / baseline_mae * 100
         st.metric("vs Baseline", f"{improvement:.1f}%")
