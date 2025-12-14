@@ -19,6 +19,8 @@ import pydeck as pdk
 from datetime import datetime, timedelta
 import os
 import sys
+import plotly.express as px
+import plotly.graph_objects as go
 
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -30,6 +32,423 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# ===================== CUSTOM CSS STYLING =====================
+
+CUSTOM_CSS = """
+<style>
+    /* ==================== CSS VARIABLES - COLOR PALETTE ==================== */
+    :root {
+        --primary-cyan: #00D4FF;
+        --primary-purple: #BD00FF;
+        --accent-pink: #FF006E;
+        --bg-dark: #0A0E17;
+        --bg-card: #131B2E;
+        --bg-card-hover: #1A2340;
+        --success-green: #00F5A0;
+        --warning-amber: #FFB800;
+        --danger-red: #FF3366;
+        --text-primary: #FFFFFF;
+        --text-secondary: #A0AEC0;
+        --text-muted: #6B7280;
+        --border-glow: rgba(0, 212, 255, 0.3);
+        --shadow-cyan: 0 0 20px rgba(0, 212, 255, 0.3);
+        --shadow-purple: 0 0 20px rgba(189, 0, 255, 0.3);
+        --shadow-pink: 0 0 20px rgba(255, 0, 110, 0.3);
+        --gradient-primary: linear-gradient(135deg, #00D4FF 0%, #BD00FF 100%);
+        --gradient-accent: linear-gradient(135deg, #FF006E 0%, #BD00FF 100%);
+        --gradient-success: linear-gradient(135deg, #00F5A0 0%, #00D4FF 100%);
+        --gradient-danger: linear-gradient(135deg, #FF3366 0%, #FF006E 100%);
+    }
+    
+    /* ==================== GLOBAL STYLES ==================== */
+    .stApp {
+        background: linear-gradient(180deg, #0A0E17 0%, #0F1629 50%, #0A0E17 100%);
+    }
+    
+    /* Hide default Streamlit elements for cleaner look */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: var(--bg-dark);
+    }
+    ::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, var(--primary-cyan), var(--primary-purple));
+        border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--primary-cyan);
+    }
+    
+    /* ==================== SIDEBAR STYLING ==================== */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #0D1321 0%, #131B2E 50%, #0D1321 100%) !important;
+        border-right: 1px solid rgba(0, 212, 255, 0.2) !important;
+        box-shadow: 4px 0 30px rgba(0, 212, 255, 0.1) !important;
+    }
+    
+    [data-testid="stSidebar"] [data-testid="stMarkdown"] {
+        color: var(--text-primary);
+    }
+    
+    /* Sidebar title glow effect */
+    [data-testid="stSidebar"] h1, 
+    [data-testid="stSidebar"] h2,
+    [data-testid="stSidebar"] h3 {
+        background: var(--gradient-primary);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+    }
+    
+    /* Radio buttons styling */
+    [data-testid="stSidebar"] .stRadio > div {
+        background: transparent !important;
+    }
+    
+    [data-testid="stSidebar"] .stRadio label {
+        background: rgba(19, 27, 46, 0.6) !important;
+        border: 1px solid rgba(0, 212, 255, 0.2) !important;
+        border-radius: 10px !important;
+        padding: 12px 16px !important;
+        margin: 4px 0 !important;
+        transition: all 0.3s ease !important;
+        backdrop-filter: blur(10px);
+    }
+    
+    [data-testid="stSidebar"] .stRadio label:hover {
+        border-color: var(--primary-cyan) !important;
+        box-shadow: var(--shadow-cyan) !important;
+        transform: translateX(5px);
+        background: rgba(0, 212, 255, 0.1) !important;
+    }
+    
+    /* ==================== MAIN CONTENT HEADERS ==================== */
+    .main h1 {
+        font-size: 2.5rem !important;
+        font-weight: 700 !important;
+        background: var(--gradient-primary);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-shadow: 0 0 40px rgba(0, 212, 255, 0.4);
+        padding-bottom: 10px;
+        border-bottom: 2px solid;
+        border-image: var(--gradient-primary) 1;
+        margin-bottom: 1rem;
+    }
+    
+    .main h2 {
+        font-size: 1.8rem !important;
+        font-weight: 600 !important;
+        color: var(--primary-cyan) !important;
+        text-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+    }
+    
+    .main h3 {
+        font-size: 1.3rem !important;
+        font-weight: 600 !important;
+        color: var(--text-primary) !important;
+    }
+    
+    /* ==================== METRIC CARDS ==================== */
+    [data-testid="stMetric"] {
+        background: linear-gradient(145deg, rgba(19, 27, 46, 0.9), rgba(13, 19, 33, 0.9)) !important;
+        border: 1px solid rgba(0, 212, 255, 0.3) !important;
+        border-radius: 16px !important;
+        padding: 20px 24px !important;
+        box-shadow: 
+            0 4px 20px rgba(0, 0, 0, 0.4),
+            0 0 40px rgba(0, 212, 255, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+        backdrop-filter: blur(10px);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    [data-testid="stMetric"]::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--gradient-primary);
+        border-radius: 16px 16px 0 0;
+    }
+    
+    [data-testid="stMetric"]:hover {
+        transform: translateY(-5px) scale(1.02) !important;
+        border-color: var(--primary-cyan) !important;
+        box-shadow: 
+            0 8px 40px rgba(0, 0, 0, 0.5),
+            0 0 60px rgba(0, 212, 255, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+    }
+    
+    [data-testid="stMetric"] label {
+        color: var(--text-secondary) !important;
+        font-size: 0.9rem !important;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    [data-testid="stMetric"] [data-testid="stMetricValue"] {
+        font-size: 2rem !important;
+        font-weight: 700 !important;
+        background: var(--gradient-primary);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    [data-testid="stMetric"] [data-testid="stMetricDelta"] {
+        font-size: 1rem !important;
+    }
+    
+    /* ==================== BUTTONS ==================== */
+    .stButton > button {
+        background: var(--gradient-primary) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 12px !important;
+        padding: 12px 28px !important;
+        font-weight: 600 !important;
+        font-size: 1rem !important;
+        letter-spacing: 0.5px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3) !important;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-3px) scale(1.05) !important;
+        box-shadow: 
+            0 8px 30px rgba(0, 212, 255, 0.5),
+            0 0 50px rgba(0, 212, 255, 0.3) !important;
+    }
+    
+    .stButton > button:active {
+        transform: translateY(-1px) scale(1.02) !important;
+    }
+    
+    /* ==================== SLIDERS ==================== */
+    .stSlider [data-baseweb="slider"] {
+        margin-top: 10px;
+    }
+    
+    .stSlider [data-testid="stThumbValue"] {
+        background: var(--gradient-primary) !important;
+        color: white !important;
+        border-radius: 8px !important;
+        padding: 4px 10px !important;
+        font-weight: 600;
+    }
+    
+    /* Slider track styling - Neon blue */
+    .stSlider [data-baseweb="slider"] > div > div {
+        background: rgba(0, 212, 255, 0.2) !important;
+    }
+    
+    .stSlider [data-baseweb="slider"] > div > div > div {
+        background: linear-gradient(90deg, #00D4FF, #BD00FF) !important;
+        box-shadow: 0 0 10px rgba(0, 212, 255, 0.5) !important;
+    }
+    
+    /* Slider thumb - Neon glow */
+    .stSlider [data-baseweb="slider"] [role="slider"] {
+        background: linear-gradient(135deg, #00D4FF, #BD00FF) !important;
+        border: 2px solid #00D4FF !important;
+        box-shadow: 
+            0 0 10px rgba(0, 212, 255, 0.6),
+            0 0 20px rgba(0, 212, 255, 0.3) !important;
+        width: 20px !important;
+        height: 20px !important;
+    }
+    
+    .stSlider [data-baseweb="slider"] [role="slider"]:hover {
+        box-shadow: 
+            0 0 15px rgba(0, 212, 255, 0.8),
+            0 0 30px rgba(0, 212, 255, 0.5) !important;
+        transform: scale(1.1);
+    }
+    
+    /* Slider label */
+    .stSlider label {
+        color: var(--text-primary) !important;
+    }
+    
+    /* ==================== DATA TABLES ==================== */
+    [data-testid="stDataFrame"] {
+        background: rgba(19, 27, 46, 0.6) !important;
+        border: 1px solid rgba(0, 212, 255, 0.2) !important;
+        border-radius: 12px !important;
+        overflow: hidden;
+    }
+    
+    [data-testid="stDataFrame"] table {
+        color: var(--text-primary) !important;
+    }
+    
+    [data-testid="stDataFrame"] th {
+        background: linear-gradient(180deg, rgba(0, 212, 255, 0.2), rgba(0, 212, 255, 0.1)) !important;
+        color: var(--primary-cyan) !important;
+        font-weight: 600 !important;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    [data-testid="stDataFrame"] td {
+        border-color: rgba(0, 212, 255, 0.1) !important;
+    }
+    
+    [data-testid="stDataFrame"] tr:hover td {
+        background: rgba(0, 212, 255, 0.1) !important;
+    }
+    
+    /* ==================== TABS ==================== */
+    .stTabs [data-baseweb="tab-list"] {
+        background: rgba(19, 27, 46, 0.6) !important;
+        border-radius: 12px !important;
+        padding: 4px !important;
+        gap: 4px !important;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        background: transparent !important;
+        color: var(--text-secondary) !important;
+        border-radius: 8px !important;
+        padding: 10px 20px !important;
+        font-weight: 500 !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .stTabs [data-baseweb="tab"]:hover {
+        background: rgba(0, 212, 255, 0.1) !important;
+        color: var(--primary-cyan) !important;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background: var(--gradient-primary) !important;
+        color: white !important;
+        box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3) !important;
+    }
+    
+    /* ==================== EXPANDERS ==================== */
+    .streamlit-expanderHeader {
+        background: rgba(19, 27, 46, 0.6) !important;
+        border: 1px solid rgba(0, 212, 255, 0.2) !important;
+        border-radius: 10px !important;
+        color: var(--text-primary) !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .streamlit-expanderHeader:hover {
+        border-color: var(--primary-cyan) !important;
+        box-shadow: var(--shadow-cyan) !important;
+    }
+    
+    /* ==================== SELECT BOXES ==================== */
+    [data-testid="stSelectbox"] > div > div {
+        background: rgba(19, 27, 46, 0.8) !important;
+        border: 1px solid rgba(0, 212, 255, 0.3) !important;
+        border-radius: 10px !important;
+        color: var(--text-primary) !important;
+    }
+    
+    [data-testid="stSelectbox"] > div > div:hover {
+        border-color: var(--primary-cyan) !important;
+    }
+    
+    /* ==================== MULTISELECT ==================== */
+    [data-testid="stMultiSelect"] > div > div {
+        background: rgba(19, 27, 46, 0.8) !important;
+        border: 1px solid rgba(0, 212, 255, 0.3) !important;
+        border-radius: 10px !important;
+    }
+    
+    [data-testid="stMultiSelect"] span[data-baseweb="tag"] {
+        background: var(--gradient-primary) !important;
+        border-radius: 6px !important;
+    }
+    
+    /* ==================== CHECKBOXES ==================== */
+    .stCheckbox label span {
+        color: var(--text-primary) !important;
+    }
+    
+    /* ==================== INFO/WARNING BOXES ==================== */
+    .stAlert {
+        background: rgba(19, 27, 46, 0.8) !important;
+        border-radius: 12px !important;
+        border: 1px solid rgba(0, 212, 255, 0.3) !important;
+    }
+    
+    /* ==================== CHARTS CONTAINER ==================== */
+    [data-testid="stPlotlyChart"],
+    .stPlotlyChart {
+        background: rgba(19, 27, 46, 0.4) !important;
+        border: 1px solid rgba(0, 212, 255, 0.2) !important;
+        border-radius: 16px !important;
+        padding: 10px !important;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3) !important;
+    }
+    
+    /* ==================== ANIMATIONS ==================== */
+    @keyframes glow-pulse {
+        0%, 100% { box-shadow: 0 0 20px rgba(0, 212, 255, 0.3); }
+        50% { box-shadow: 0 0 40px rgba(0, 212, 255, 0.6); }
+    }
+    
+    @keyframes gradient-shift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-5px); }
+    }
+    
+    /* Animated gradient border effect */
+    .glow-card {
+        animation: glow-pulse 3s ease-in-out infinite;
+    }
+    
+    /* ==================== SPINNER ==================== */
+    .stSpinner > div {
+        border-top-color: var(--primary-cyan) !important;
+    }
+    
+    /* ==================== HORIZONTAL RULE ==================== */
+    hr {
+        border: none !important;
+        height: 2px !important;
+        background: linear-gradient(90deg, transparent, var(--primary-cyan), var(--primary-purple), transparent) !important;
+        margin: 2rem 0 !important;
+    }
+    
+    /* ==================== DATE INPUT ==================== */
+    [data-testid="stDateInput"] > div > div {
+        background: rgba(19, 27, 46, 0.8) !important;
+        border: 1px solid rgba(0, 212, 255, 0.3) !important;
+        border-radius: 10px !important;
+        color: var(--text-primary) !important;
+    }
+</style>
+"""
+
+# Apply custom CSS
+st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
 # Paths
 MODEL_PATH = "models/final_model.joblib"
@@ -109,6 +528,147 @@ def get_location_name(h3_index, location_map):
     if location_map and h3_index in location_map:
         return location_map[h3_index]
     return h3_index[:12] + '...'
+
+
+# ===================== CHART STYLING UTILITIES =====================
+
+# Neon color palette for charts
+NEON_COLORS = {
+    'cyan': '#00D4FF',
+    'purple': '#BD00FF',
+    'pink': '#FF006E',
+    'green': '#00F5A0',
+    'amber': '#FFB800',
+    'red': '#FF3366',
+    'teal': '#00E5CC',
+    'orange': '#FF8C00'
+}
+
+NEON_COLOR_SEQUENCE = [
+    '#00D4FF', '#BD00FF', '#FF006E', '#00F5A0', 
+    '#FFB800', '#FF3366', '#00E5CC', '#FF8C00'
+]
+
+
+def configure_plotly_theme():
+    """Return Plotly layout configuration with dark neon theme."""
+    return {
+        'template': 'plotly_dark',
+        'paper_bgcolor': 'rgba(19, 27, 46, 0.8)',
+        'plot_bgcolor': 'rgba(10, 14, 23, 0.9)',
+        'font': {'color': '#FFFFFF', 'family': 'Segoe UI, Roboto, sans-serif'},
+        'title': {'font': {'size': 20, 'color': '#00D4FF'}},
+        'xaxis': {
+            'gridcolor': 'rgba(0, 212, 255, 0.1)',
+            'linecolor': 'rgba(0, 212, 255, 0.3)',
+            'tickfont': {'color': '#A0AEC0'}
+        },
+        'yaxis': {
+            'gridcolor': 'rgba(0, 212, 255, 0.1)',
+            'linecolor': 'rgba(0, 212, 255, 0.3)',
+            'tickfont': {'color': '#A0AEC0'}
+        },
+        'legend': {'bgcolor': 'rgba(19, 27, 46, 0.8)', 'bordercolor': 'rgba(0, 212, 255, 0.3)'},
+        'hoverlabel': {
+            'bgcolor': 'rgba(19, 27, 46, 0.95)',
+            'bordercolor': '#00D4FF',
+            'font': {'color': '#FFFFFF', 'size': 13}
+        }
+    }
+
+
+def style_matplotlib_chart(fig, ax, title='', xlabel='', ylabel=''):
+    """Apply neon dark theme styling to matplotlib figure and axes."""
+    # Dark background
+    fig.patch.set_facecolor('#0A0E17')
+    ax.set_facecolor('#0D1321')
+    
+    # Neon grid
+    ax.grid(True, alpha=0.2, color='#00D4FF', linestyle='--', linewidth=0.5)
+    
+    # Style spines
+    for spine in ax.spines.values():
+        spine.set_color('#00D4FF')
+        spine.set_alpha(0.3)
+        spine.set_linewidth(1)
+    
+    # Labels and title with neon colors
+    if title:
+        ax.set_title(title, color='#00D4FF', fontsize=16, fontweight='bold', pad=15)
+    if xlabel:
+        ax.set_xlabel(xlabel, color='#A0AEC0', fontsize=12)
+    if ylabel:
+        ax.set_ylabel(ylabel, color='#A0AEC0', fontsize=12)
+    
+    # Tick colors
+    ax.tick_params(colors='#A0AEC0', which='both')
+    
+    return fig, ax
+
+
+def create_neon_bar_chart(data, x, y, title='', color_col=None, horizontal=False):
+    """Create a Plotly bar chart with neon styling."""
+    if horizontal:
+        fig = px.bar(data, x=y, y=x, orientation='h',
+                     color=color_col if color_col else None,
+                     color_discrete_sequence=NEON_COLOR_SEQUENCE)
+    else:
+        fig = px.bar(data, x=x, y=y,
+                     color=color_col if color_col else None,
+                     color_discrete_sequence=NEON_COLOR_SEQUENCE)
+    
+    theme = configure_plotly_theme()
+    fig.update_layout(
+        title=title,
+        paper_bgcolor=theme['paper_bgcolor'],
+        plot_bgcolor=theme['plot_bgcolor'],
+        font=theme['font'],
+        xaxis=theme['xaxis'],
+        yaxis=theme['yaxis'],
+        hoverlabel=theme['hoverlabel'],
+        showlegend=bool(color_col),
+        margin=dict(l=20, r=20, t=50, b=20)
+    )
+    
+    # Add glow effect to bars
+    fig.update_traces(
+        marker=dict(
+            line=dict(width=1, color='rgba(0, 212, 255, 0.5)')
+        ),
+        hovertemplate='<b>%{x}</b><br>Value: %{y:.4f}<extra></extra>' if not horizontal 
+                      else '<b>%{y}</b><br>Value: %{x:.4f}<extra></extra>'
+    )
+    
+    return fig
+
+
+def create_neon_line_chart(data, x, y, color=None, title=''):
+    """Create a Plotly line chart with neon styling and glow effect."""
+    fig = px.line(data, x=x, y=y, color=color,
+                  color_discrete_sequence=NEON_COLOR_SEQUENCE,
+                  markers=True)
+    
+    theme = configure_plotly_theme()
+    fig.update_layout(
+        title=title,
+        paper_bgcolor=theme['paper_bgcolor'],
+        plot_bgcolor=theme['plot_bgcolor'],
+        font=theme['font'],
+        xaxis=theme['xaxis'],
+        yaxis=theme['yaxis'],
+        legend=theme['legend'],
+        hoverlabel=theme['hoverlabel'],
+        margin=dict(l=20, r=20, t=50, b=20)
+    )
+    
+    # Style lines with glow
+    fig.update_traces(
+        line=dict(width=3),
+        marker=dict(size=8, line=dict(width=2, color='rgba(255,255,255,0.3)')),
+        hovertemplate='<b>%{x}</b><br>Risk: %{y:.4f}<extra></extra>'
+    )
+    
+    return fig
 
 
 def prepare_prediction_data(df, selected_datetime, simulation_params):
@@ -195,7 +755,7 @@ def run_predictions(model, pred_df, conformal_predictor=None):
 
 
 def create_risk_map(pred_df, show_intervals=False, location_map=None):
-    """Create PyDeck map with hexagons colored by risk."""
+    """Create PyDeck 3D map with hexagons colored and extruded by risk."""
     # Create a copy to avoid modifying original
     pred_df = pred_df.copy()
     
@@ -205,15 +765,22 @@ def create_risk_map(pred_df, show_intervals=False, location_map=None):
         risk = row['predicted_risk']
         location_name = get_location_name(row['h3_index'], location_map)
         
-        # Determine color based on risk level
+        # Enhanced neon color scheme based on risk level
         if risk < 0.05:
-            r, g, b, a = 0, 180, 0, 160
+            # Low risk: Cyan/Teal glow
+            r, g, b, a = 0, 212, 255, 200
         elif risk < 0.15:
-            r, g, b, a = 255, 200, 0, 160
+            # Medium risk: Amber/Gold glow
+            r, g, b, a = 255, 184, 0, 200
         elif risk < 0.3:
-            r, g, b, a = 255, 120, 0, 160
+            # High risk: Orange/Pink glow
+            r, g, b, a = 255, 100, 50, 210
         else:
-            r, g, b, a = 255, 0, 0, 180
+            # Critical risk: Magenta/Red glow
+            r, g, b, a = 255, 51, 102, 230
+        
+        # Calculate elevation for 3D effect (scale risk to visible height)
+        elevation = max(50, risk * 3000)  # Base height of 50, scales up with risk
         
         map_data.append({
             'h3_index': row['h3_index'],
@@ -223,6 +790,7 @@ def create_risk_map(pred_df, show_intervals=False, location_map=None):
             'risk': float(risk),
             'lower': float(row.get('lower_bound', risk)),
             'upper': float(row.get('upper_bound', risk)),
+            'elevation': elevation,
             'r': r,
             'g': g,
             'b': b,
@@ -231,9 +799,49 @@ def create_risk_map(pred_df, show_intervals=False, location_map=None):
     
     map_df = pd.DataFrame(map_data)
     
-    tooltip_text = "Location: {location}<br/>Risk: {risk:.4f}"
+    # Enhanced HTML tooltip with dark theme styling
+    tooltip_html = """
+    <div style="
+        background: linear-gradient(135deg, rgba(19, 27, 46, 0.95), rgba(13, 19, 33, 0.95));
+        border: 1px solid rgba(0, 212, 255, 0.5);
+        border-radius: 12px;
+        padding: 15px 20px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 212, 255, 0.2);
+        font-family: 'Segoe UI', Roboto, sans-serif;
+        min-width: 200px;
+    ">
+        <div style="
+            font-size: 14px;
+            font-weight: 600;
+            color: #00D4FF;
+            margin-bottom: 8px;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        ">📍 {location}</div>
+        <div style="
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00D4FF, #BD00FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 6px;
+        ">Risk: {risk:.4f}</div>
+    """
+    
     if show_intervals and 'lower_bound' in pred_df.columns:
-        tooltip_text = "Location: {location}<br/>Risk: {risk:.4f}<br/>90% CI: [{lower:.4f}, {upper:.4f}]"
+        tooltip_html += """
+        <div style="
+            font-size: 12px;
+            color: #A0AEC0;
+            padding-top: 6px;
+            border-top: 1px solid rgba(0, 212, 255, 0.2);
+            margin-top: 6px;
+        ">
+            <span style="color: #00F5A0;">90% CI:</span> [{lower:.4f}, {upper:.4f}]
+        </div>
+        """
+    
+    tooltip_html += "</div>"
     
     layer = pdk.Layer(
         "H3HexagonLayer",
@@ -241,24 +849,29 @@ def create_risk_map(pred_df, show_intervals=False, location_map=None):
         pickable=True,
         stroked=True,
         filled=True,
-        extruded=False,
+        extruded=True,  # Enable 3D extrusion
         get_hexagon="h3_index",
         get_fill_color="[r, g, b, a]",
-        get_line_color=[255, 255, 255],
-        line_width_min_pixels=1
+        get_line_color=[0, 212, 255, 100],  # Cyan outline
+        get_elevation="elevation",
+        elevation_scale=1,
+        line_width_min_pixels=1,
+        coverage=0.9,  # Slight gap between hexagons for visual clarity
     )
     
     view_state = pdk.ViewState(
         latitude=40.7128,
         longitude=-74.0060,
-        zoom=10,
-        pitch=0
+        zoom=10.5,
+        pitch=45,  # 3D perspective
+        bearing=0
     )
     
     deck = pdk.Deck(
         layers=[layer],
         initial_view_state=view_state,
-        tooltip={"html": tooltip_text}
+        tooltip={"html": tooltip_html, "style": {"backgroundColor": "transparent", "border": "none"}},
+        map_style="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"  # Dark map style
     )
     
     return deck
@@ -360,10 +973,53 @@ def page_risk_prediction():
             display_df['Location'] = display_df['Location'].apply(lambda h: get_location_name(h, location_map))
             st.dataframe(display_df, hide_index=True, use_container_width=True)
             
-            # Risk distribution
+            # Risk distribution - Styled Plotly chart
             st.subheader("📊 Risk Distribution")
             risk_counts = results['risk_level'].value_counts()
-            st.bar_chart(risk_counts)
+            
+            # Create ordered dataframe for risk levels
+            risk_order = ['Low', 'Medium', 'High', 'Critical']
+            risk_df = pd.DataFrame({
+                'level': [lvl for lvl in risk_order if lvl in risk_counts.index],
+                'count': [risk_counts.get(lvl, 0) for lvl in risk_order if lvl in risk_counts.index]
+            })
+            
+            # Neon colors matching risk levels
+            risk_colors = {
+                'Low': '#00D4FF',      # Cyan
+                'Medium': '#FFB800',   # Amber
+                'High': '#FF6432',     # Orange
+                'Critical': '#FF3366'  # Magenta
+            }
+            
+            fig = go.Figure()
+            
+            for _, row in risk_df.iterrows():
+                fig.add_trace(go.Bar(
+                    x=[row['level']],
+                    y=[row['count']],
+                    name=row['level'],
+                    marker=dict(
+                        color=risk_colors.get(row['level'], '#00D4FF'),
+                        line=dict(width=2, color='rgba(255, 255, 255, 0.3)')
+                    ),
+                    hovertemplate=f"<b>{row['level']}</b><br>Count: {row['count']}<extra></extra>"
+                ))
+            
+            theme = configure_plotly_theme()
+            fig.update_layout(
+                paper_bgcolor=theme['paper_bgcolor'],
+                plot_bgcolor=theme['plot_bgcolor'],
+                font=theme['font'],
+                xaxis=dict(title='Risk Level', **theme['xaxis']),
+                yaxis=dict(title='Number of Areas', **theme['yaxis']),
+                hoverlabel=theme['hoverlabel'],
+                showlegend=False,
+                margin=dict(l=20, r=20, t=20, b=40),
+                height=300
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("👈 Select date, time, and weather parameters, then click **Run Prediction**")
 
@@ -396,15 +1052,46 @@ def page_explainability():
         col1, col2 = st.columns([2, 1])
         
         with col1:
-            import matplotlib.pyplot as plt
-            fig, ax = plt.subplots(figsize=(10, 6))
-            importance_sorted = importance.sort_values('importance')
-            ax.barh(importance_sorted['feature'], importance_sorted['importance'], color='steelblue')
-            ax.set_xlabel('Mean |SHAP Value|')
-            ax.set_title('Feature Importance (SHAP)')
-            plt.tight_layout()
-            st.pyplot(fig)
-            plt.close()
+            # Interactive Plotly SHAP chart with neon styling
+            importance_sorted = importance.sort_values('importance', ascending=True)
+            
+            fig = go.Figure()
+            
+            # Create gradient colors for bars (cyan to purple)
+            n_features = len(importance_sorted)
+            colors = []
+            for i in range(n_features):
+                ratio = i / max(n_features - 1, 1)
+                r = int(0 + ratio * 189)  # 00 to BD
+                g = int(212 - ratio * 212)  # D4 to 00
+                b = int(255)  # FF
+                colors.append(f'rgb({r}, {g}, {b})')
+            
+            fig.add_trace(go.Bar(
+                x=importance_sorted['importance'],
+                y=importance_sorted['feature'],
+                orientation='h',
+                marker=dict(
+                    color=colors,
+                    line=dict(width=1, color='rgba(0, 212, 255, 0.5)')
+                ),
+                hovertemplate='<b>%{y}</b><br>SHAP: %{x:.4f}<extra></extra>'
+            ))
+            
+            theme = configure_plotly_theme()
+            fig.update_layout(
+                title=dict(text='Feature Importance (SHAP)', font=dict(size=18, color='#00D4FF')),
+                paper_bgcolor=theme['paper_bgcolor'],
+                plot_bgcolor=theme['plot_bgcolor'],
+                font=theme['font'],
+                xaxis=dict(title='Mean |SHAP Value|', **theme['xaxis']),
+                yaxis=theme['yaxis'],
+                hoverlabel=theme['hoverlabel'],
+                margin=dict(l=20, r=20, t=50, b=40),
+                height=450
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
         
         with col2:
             st.dataframe(
@@ -574,22 +1261,38 @@ def page_forecast():
         if 'forecast' in st.session_state:
             forecast_df = st.session_state['forecast']
             
-            import matplotlib.pyplot as plt
+            # Chart heading above the graph
+            st.subheader("📈 24-Hour Risk Forecast")
             
-            fig, ax = plt.subplots(figsize=(12, 6))
+            # Interactive Plotly forecast chart with neon styling
+            fig = create_neon_line_chart(
+                forecast_df, 
+                x='hour', 
+                y='risk', 
+                color='location',
+                title=''  # Title is shown as subheader above
+            )
             
-            for location in forecast_df['location'].unique():
-                loc_data = forecast_df[forecast_df['location'] == location]
-                ax.plot(loc_data['hour'], loc_data['risk'], 'o-', label=location, linewidth=2, markersize=4)
+            # Add area fill for visual impact
+            fig.update_traces(fill='tozeroy', fillcolor='rgba(0, 212, 255, 0.05)')
             
-            ax.set_xlabel('Hours from Start')
-            ax.set_ylabel('Predicted Risk')
-            ax.set_title('24-Hour Risk Forecast')
-            ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-            ax.grid(True, alpha=0.3)
-            plt.tight_layout()
-            st.pyplot(fig)
-            plt.close()
+            fig.update_layout(
+                xaxis_title='Hours from Start',
+                yaxis_title='Predicted Risk',
+                height=450,
+                legend=dict(
+                    orientation='h',
+                    yanchor='bottom',
+                    y=1.02,
+                    xanchor='left',
+                    x=0,
+                    bgcolor='rgba(19, 27, 46, 0.8)',
+                    bordercolor='rgba(0, 212, 255, 0.3)',
+                    borderwidth=1
+                )
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
             
             # Summary stats
             st.subheader("Forecast Summary")
@@ -650,52 +1353,169 @@ def page_model_performance():
     tab1, tab2, tab3 = st.tabs(["Predictions vs Actual", "Residual Analysis", "By Time Period"])
     
     with tab1:
-        import matplotlib.pyplot as plt
+        col1, col2 = st.columns(2)
         
-        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+        with col1:
+            # Scatter plot with Plotly
+            fig = go.Figure()
+            
+            # Add scatter points with neon cyan color
+            fig.add_trace(go.Scattergl(
+                x=y_true,
+                y=y_pred,
+                mode='markers',
+                marker=dict(
+                    color='rgba(0, 212, 255, 0.4)',
+                    size=5,
+                    line=dict(width=0)
+                ),
+                name='Predictions',
+                hovertemplate='<b>Actual:</b> %{x:.4f}<br><b>Predicted:</b> %{y:.4f}<extra></extra>'
+            ))
+            
+            # Add diagonal line
+            max_val = max(y_true.max(), y_pred.max())
+            fig.add_trace(go.Scatter(
+                x=[0, max_val],
+                y=[0, max_val],
+                mode='lines',
+                line=dict(color='#FF3366', width=2, dash='dash'),
+                name='Perfect Prediction',
+                hoverinfo='skip'
+            ))
+            
+            theme = configure_plotly_theme()
+            fig.update_layout(
+                title=dict(text='Predicted vs Actual', font=dict(size=16, color='#00D4FF')),
+                xaxis_title='Actual',
+                yaxis_title='Predicted',
+                paper_bgcolor=theme['paper_bgcolor'],
+                plot_bgcolor=theme['plot_bgcolor'],
+                font=theme['font'],
+                xaxis=theme['xaxis'],
+                yaxis=theme['yaxis'],
+                hoverlabel=theme['hoverlabel'],
+                showlegend=True,
+                legend=dict(
+                    bgcolor='rgba(19, 27, 46, 0.8)',
+                    bordercolor='rgba(0, 212, 255, 0.3)'
+                ),
+                height=400
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
         
-        # Scatter plot
-        axes[0].scatter(y_true, y_pred, alpha=0.3, s=10)
-        max_val = max(y_true.max(), y_pred.max())
-        axes[0].plot([0, max_val], [0, max_val], 'r--', linewidth=2)
-        axes[0].set_xlabel('Actual')
-        axes[0].set_ylabel('Predicted')
-        axes[0].set_title('Predicted vs Actual')
-        axes[0].grid(True, alpha=0.3)
-        
-        # Histogram of predictions
-        axes[1].hist(y_pred, bins=50, alpha=0.7, label='Predicted', color='blue')
-        axes[1].hist(y_true, bins=50, alpha=0.5, label='Actual', color='orange')
-        axes[1].set_xlabel('Value')
-        axes[1].set_ylabel('Frequency')
-        axes[1].set_title('Distribution Comparison')
-        axes[1].legend()
-        
-        plt.tight_layout()
-        st.pyplot(fig)
-        plt.close()
+        with col2:
+            # Distribution comparison with overlaid histograms
+            fig = go.Figure()
+            
+            fig.add_trace(go.Histogram(
+                x=y_pred,
+                name='Predicted',
+                marker_color='rgba(0, 212, 255, 0.6)',
+                marker_line=dict(width=1, color='#00D4FF'),
+                nbinsx=50,
+                opacity=0.7
+            ))
+            
+            fig.add_trace(go.Histogram(
+                x=y_true,
+                name='Actual',
+                marker_color='rgba(189, 0, 255, 0.5)',
+                marker_line=dict(width=1, color='#BD00FF'),
+                nbinsx=50,
+                opacity=0.6
+            ))
+            
+            fig.update_layout(
+                title=dict(text='Distribution Comparison', font=dict(size=16, color='#00D4FF')),
+                xaxis_title='Value',
+                yaxis_title='Frequency',
+                barmode='overlay',
+                paper_bgcolor=theme['paper_bgcolor'],
+                plot_bgcolor=theme['plot_bgcolor'],
+                font=theme['font'],
+                xaxis=theme['xaxis'],
+                yaxis=theme['yaxis'],
+                hoverlabel=theme['hoverlabel'],
+                legend=dict(
+                    bgcolor='rgba(19, 27, 46, 0.8)',
+                    bordercolor='rgba(0, 212, 255, 0.3)'
+                ),
+                height=400
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
     
     with tab2:
         residuals = y_true - y_pred
         
-        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+        col1, col2 = st.columns(2)
         
-        axes[0].scatter(y_pred, residuals, alpha=0.3, s=10)
-        axes[0].axhline(y=0, color='r', linestyle='--')
-        axes[0].set_xlabel('Predicted')
-        axes[0].set_ylabel('Residual')
-        axes[0].set_title('Residuals vs Predicted')
-        axes[0].grid(True, alpha=0.3)
+        with col1:
+            # Residuals vs Predicted scatter
+            fig = go.Figure()
+            
+            fig.add_trace(go.Scattergl(
+                x=y_pred,
+                y=residuals,
+                mode='markers',
+                marker=dict(
+                    color='rgba(0, 245, 160, 0.4)',
+                    size=5
+                ),
+                name='Residuals',
+                hovertemplate='<b>Predicted:</b> %{x:.4f}<br><b>Residual:</b> %{y:.4f}<extra></extra>'
+            ))
+            
+            # Add zero line
+            fig.add_hline(y=0, line_dash="dash", line_color="#FF3366", line_width=2)
+            
+            fig.update_layout(
+                title=dict(text='Residuals vs Predicted', font=dict(size=16, color='#00D4FF')),
+                xaxis_title='Predicted',
+                yaxis_title='Residual',
+                paper_bgcolor=theme['paper_bgcolor'],
+                plot_bgcolor=theme['plot_bgcolor'],
+                font=theme['font'],
+                xaxis=theme['xaxis'],
+                yaxis=theme['yaxis'],
+                hoverlabel=theme['hoverlabel'],
+                height=400
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
         
-        axes[1].hist(residuals, bins=50, alpha=0.7, color='green')
-        axes[1].axvline(x=0, color='r', linestyle='--')
-        axes[1].set_xlabel('Residual')
-        axes[1].set_ylabel('Frequency')
-        axes[1].set_title(f'Residual Distribution (Mean: {residuals.mean():.4f})')
-        
-        plt.tight_layout()
-        st.pyplot(fig)
-        plt.close()
+        with col2:
+            # Residual distribution histogram
+            fig = go.Figure()
+            
+            fig.add_trace(go.Histogram(
+                x=residuals,
+                marker_color='rgba(0, 212, 255, 0.6)',
+                marker_line=dict(width=1, color='#00D4FF'),
+                nbinsx=50
+            ))
+            
+            fig.add_vline(x=0, line_dash="dash", line_color="#FF3366", line_width=2)
+            
+            fig.update_layout(
+                title=dict(
+                    text=f'Residual Distribution (Mean: {residuals.mean():.4f})',
+                    font=dict(size=16, color='#00D4FF')
+                ),
+                xaxis_title='Residual',
+                yaxis_title='Frequency',
+                paper_bgcolor=theme['paper_bgcolor'],
+                plot_bgcolor=theme['plot_bgcolor'],
+                font=theme['font'],
+                xaxis=theme['xaxis'],
+                yaxis=theme['yaxis'],
+                hoverlabel=theme['hoverlabel'],
+                height=400
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
     
     with tab3:
         sample['prediction'] = y_pred
@@ -707,15 +1527,46 @@ def page_model_performance():
             'accident_count': 'mean'
         }).reset_index()
         
-        fig, ax = plt.subplots(figsize=(12, 5))
-        ax.bar(hourly_performance['hour_of_day'], hourly_performance['error'], alpha=0.7)
-        ax.set_xlabel('Hour of Day')
-        ax.set_ylabel('Mean Absolute Error')
-        ax.set_title('Prediction Error by Hour')
-        ax.set_xticks(range(24))
-        plt.tight_layout()
-        st.pyplot(fig)
-        plt.close()
+        # Create bar chart with gradient colors
+        colors = []
+        for i, err in enumerate(hourly_performance['error']):
+            # Color from green (low error) to red (high error)
+            max_err = hourly_performance['error'].max()
+            min_err = hourly_performance['error'].min()
+            ratio = (err - min_err) / (max_err - min_err) if max_err != min_err else 0
+            colors.append(f'rgba({int(255 * ratio)}, {int(245 * (1-ratio))}, {int(160 * (1-ratio))}, 0.8)')
+        
+        fig = go.Figure()
+        
+        fig.add_trace(go.Bar(
+            x=hourly_performance['hour_of_day'],
+            y=hourly_performance['error'],
+            marker=dict(
+                color=colors,
+                line=dict(width=1, color='rgba(0, 212, 255, 0.5)')
+            ),
+            hovertemplate='<b>Hour: %{x}:00</b><br>MAE: %{y:.4f}<extra></extra>'
+        ))
+        
+        fig.update_layout(
+            title=dict(text='Prediction Error by Hour', font=dict(size=16, color='#00D4FF')),
+            xaxis_title='Hour of Day',
+            yaxis_title='Mean Absolute Error',
+            paper_bgcolor=theme['paper_bgcolor'],
+            plot_bgcolor=theme['plot_bgcolor'],
+            font=theme['font'],
+            xaxis=dict(
+                **theme['xaxis'],
+                tickmode='linear',
+                tick0=0,
+                dtick=1
+            ),
+            yaxis=theme['yaxis'],
+            hoverlabel=theme['hoverlabel'],
+            height=400
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
 
 
 def page_hotspot_analysis():
@@ -751,38 +1602,79 @@ def page_hotspot_analysis():
                 st.subheader("Cluster Map")
                 
                 map_data = []
-                colors = [[31, 119, 180], [255, 127, 14], [44, 160, 44], 
-                         [214, 39, 40], [148, 103, 189], [140, 86, 75],
-                         [227, 119, 194], [127, 127, 127], [188, 189, 34], [23, 190, 207]]
+                # Neon colors for clusters
+                neon_cluster_colors = [
+                    [0, 212, 255],    # Cyan
+                    [189, 0, 255],    # Purple
+                    [255, 0, 110],    # Pink
+                    [0, 245, 160],    # Green
+                    [255, 184, 0],    # Amber
+                    [255, 51, 102],   # Red
+                    [0, 229, 204],    # Teal
+                    [255, 140, 0],    # Orange
+                    [138, 43, 226],   # Blue Violet
+                    [50, 205, 50]     # Lime
+                ]
                 
                 for _, row in hex_df.iterrows():
                     h3_idx = row['h3_index']
                     cluster = int(row['cluster'])
                     lat, lng = get_hexagon_center(h3_idx)
                     
+                    # Use accident count for elevation
+                    elevation = max(100, row.get('accident_count_mean', 0) * 500)
+                    
                     map_data.append({
                         'h3_index': h3_idx,
                         'lat': lat,
                         'lng': lng,
                         'cluster': cluster,
-                        'color': colors[cluster % len(colors)] + [160]
+                        'elevation': elevation,
+                        'color': neon_cluster_colors[cluster % len(neon_cluster_colors)] + [200]
                     })
                 
+                # Enhanced 3D layer
                 layer = pdk.Layer(
                     "H3HexagonLayer",
                     pd.DataFrame(map_data),
                     pickable=True,
                     stroked=True,
                     filled=True,
+                    extruded=True,
                     get_hexagon="h3_index",
                     get_fill_color="color",
-                    get_line_color=[255, 255, 255]
+                    get_line_color=[0, 212, 255, 100],
+                    get_elevation="elevation",
+                    elevation_scale=1,
+                    coverage=0.9
                 )
+                
+                # Enhanced tooltip
+                cluster_tooltip = """
+                <div style="
+                    background: linear-gradient(135deg, rgba(19, 27, 46, 0.95), rgba(13, 19, 33, 0.95));
+                    border: 1px solid rgba(0, 212, 255, 0.5);
+                    border-radius: 10px;
+                    padding: 12px 16px;
+                    font-family: 'Segoe UI', sans-serif;
+                ">
+                    <div style="color: #00D4FF; font-size: 18px; font-weight: 600;">
+                        Cluster {cluster}
+                    </div>
+                </div>
+                """
                 
                 deck = pdk.Deck(
                     layers=[layer],
-                    initial_view_state=pdk.ViewState(latitude=40.7128, longitude=-74.0060, zoom=10),
-                    tooltip={"text": "Cluster: {cluster}"}
+                    initial_view_state=pdk.ViewState(
+                        latitude=40.7128, 
+                        longitude=-74.0060, 
+                        zoom=10.5,
+                        pitch=45,
+                        bearing=0
+                    ),
+                    tooltip={"html": cluster_tooltip, "style": {"backgroundColor": "transparent"}},
+                    map_style="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
                 )
                 st.pydeck_chart(deck)
             
@@ -956,59 +1848,95 @@ def page_scenario_comparison():
 
 
 def create_scenario_map_data(results_df, location_map):
-    """Create map data for a scenario."""
+    """Create map data for a scenario with neon colors."""
     map_data = []
     for _, row in results_df.iterrows():
         lat, lng = get_hexagon_center(row['h3_index'])
         risk = float(row['predicted_risk'])
         location_name = get_location_name(row['h3_index'], location_map)
         
-        # Color based on risk
+        # Neon color scheme based on risk (matching main risk map)
         if risk < 0.05:
-            r, g, b = 0, 180, 0
+            r, g, b = 0, 212, 255  # Cyan
         elif risk < 0.15:
-            r, g, b = 255, 200, 0
+            r, g, b = 255, 184, 0  # Amber
         elif risk < 0.3:
-            r, g, b = 255, 120, 0
+            r, g, b = 255, 100, 50  # Orange
         else:
-            r, g, b = 255, 0, 0
+            r, g, b = 255, 51, 102  # Magenta
+        
+        # Elevation for 3D effect
+        elevation = max(50, risk * 2000)
         
         map_data.append({
             'h3_index': row['h3_index'],
             'location': location_name,
             'risk': risk,
-            'r': r, 'g': g, 'b': b, 'a': 160
+            'elevation': elevation,
+            'r': r, 'g': g, 'b': b, 'a': 200
         })
     
     return pd.DataFrame(map_data)
 
 
 def build_hex_map(map_df, title):
-    """Build a PyDeck map from prepared data."""
+    """Build a PyDeck 3D map with neon styling."""
     layer = pdk.Layer(
         "H3HexagonLayer",
         map_df,
         pickable=True,
         stroked=True,
         filled=True,
-        extruded=False,
+        extruded=True,
         get_hexagon="h3_index",
         get_fill_color="[r, g, b, a]",
-        get_line_color=[255, 255, 255],
-        line_width_min_pixels=1
+        get_line_color=[0, 212, 255, 80],
+        get_elevation="elevation",
+        elevation_scale=1,
+        line_width_min_pixels=1,
+        coverage=0.9
     )
     
     view_state = pdk.ViewState(
         latitude=40.7128,
         longitude=-74.0060,
-        zoom=10,
-        pitch=0
+        zoom=10.5,
+        pitch=40,
+        bearing=0
     )
+    
+    # Enhanced tooltip with neon styling
+    tooltip_html = f"""
+    <div style="
+        background: linear-gradient(135deg, rgba(19, 27, 46, 0.95), rgba(13, 19, 33, 0.95));
+        border: 1px solid rgba(0, 212, 255, 0.5);
+        border-radius: 10px;
+        padding: 12px 16px;
+        font-family: 'Segoe UI', sans-serif;
+    ">
+        <div style="color: #BD00FF; font-size: 12px; font-weight: 600; margin-bottom: 4px;">
+            {title}
+        </div>
+        <div style="color: #00D4FF; font-size: 14px;">
+            📍 {{location}}
+        </div>
+        <div style="
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00D4FF, #BD00FF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        ">
+            Risk: {{risk:.4f}}
+        </div>
+    </div>
+    """
     
     return pdk.Deck(
         layers=[layer],
         initial_view_state=view_state,
-        tooltip={"html": f"<b>{title}</b><br/>Location: {{location}}<br/>Risk: {{risk:.4f}}"}
+        tooltip={"html": tooltip_html, "style": {"backgroundColor": "transparent"}},
+        map_style="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
     )
 
 
