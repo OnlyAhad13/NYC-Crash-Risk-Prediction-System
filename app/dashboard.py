@@ -450,12 +450,10 @@ CUSTOM_CSS = """
 # Apply custom CSS
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
-# Paths - Use absolute paths relative to script location for deployment compatibility
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
-MODEL_PATH = os.path.join(PROJECT_ROOT, "models", "final_model.joblib")
-DATA_PATH = os.path.join(PROJECT_ROOT, "data", "processed", "test.csv")
-LOCATION_PATH = os.path.join(PROJECT_ROOT, "data", "processed", "h3_location_mapping.csv")
+# Paths
+MODEL_PATH = "models/final_model.joblib"
+DATA_PATH = "data/processed/test.csv"
+LOCATION_PATH = "data/processed/h3_location_mapping.csv"
 
 # Feature columns
 FEATURE_COLS = [
