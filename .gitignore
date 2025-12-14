@@ -36,7 +36,6 @@ data/processed/*.csv
 data/processed/*.html
 
 # Model files
-models/*.joblib
 models/*.pkl
 models/*.h5
 models/*.pt
