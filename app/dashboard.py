@@ -1953,7 +1953,6 @@ def main():
         "🗺️ Risk Prediction": page_risk_prediction,
         "🔍 Explainability": page_explainability,
         "📈 24h Forecast": page_forecast,
-        "📊 Model Performance": page_model_performance,
         "🎯 Hotspot Analysis": page_hotspot_analysis,
         "🔄 Scenario Comparison": page_scenario_comparison
     }
